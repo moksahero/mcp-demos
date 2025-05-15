@@ -11,15 +11,27 @@ export default async function handler(
   }
 
   try {
-    const response = await fetch("http://152.42.218.231:4000/", {
+    const response = await fetch("http://152.42.218.231:4000/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get("content-type");
 
-    return res.status(200).json(data);
+    console.log(response);
+
+    if (contentType?.includes("application/json")) {
+      const data = await response.json();
+      return res.status(200).json(data);
+    } else {
+      const text = await response.text();
+      console.warn("⚠️ Non-JSON response received:", text.slice(0, 200));
+      return res.status(502).json({
+        error: "Expected JSON but received HTML or plain text",
+        raw: text,
+      });
+    }
   } catch (error) {
     console.error("Proxy error:", error);
     return res
