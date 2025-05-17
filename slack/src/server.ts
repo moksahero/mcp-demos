@@ -87,12 +87,19 @@ async function main() {
       });
 
       const response = await agent.generate(prompt);
-      const resultText =
-        "```\nプロンプト： /askai " +
-        prompt +
-        "\n\n ---- \n\n" +
-        response.text +
-        "\n```";
+      const promptHeader =
+        "```\nプロンプト： /askai " + prompt + "\n\n AIに問い合わせ中...\n```";
+
+      await fetch(response_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          text: promptHeader,
+        }),
+      });
+
+      const resultText = "```\n" + response.text + "\n```";
 
       await fetch(response_url, {
         method: "POST",
