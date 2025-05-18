@@ -36,6 +36,10 @@ async function main() {
           PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
         },
       },
+      playwright: {
+        command: "npx",
+        args: ["@playwright/mcp"],
+      },
     },
   });
 
@@ -90,15 +94,25 @@ async function main() {
         name: "Slack Agent",
         tools: wrappedTools,
         instructions: `
-        あなたはSlackを使って様々なリクエストをハンドリングします
+        Playwrightを使って指定のURLを解析できます
         Perplexityで調べものもできます
         Markdownフォーマットは使わず、Slackの\`\`\`にきれいに入るフラットテキストで出してください。
+        最後の出力はこのプロンプトで何を送ったか詳細を送ってください
         全部日本語で出力してください
         `,
         model: openai("gpt-4o-mini"),
       });
 
-      const response = await agent.generate(prompt);
+      const response = await agent.generate([
+        {
+          role: "system",
+          content: "あなたは日本語で回答する優秀なエージェントです",
+        }, // optional
+        {
+          role: "user",
+          content: prompt,
+        },
+      ]);
 
       const resultText = "```\n" + response.text + "\n```";
 
