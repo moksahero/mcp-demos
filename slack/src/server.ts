@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
+import defineAgent from "@mastra/core";
 import { MCPClient } from "@mastra/mcp";
 import { z } from "zod";
 dotenv.config();
@@ -96,6 +97,9 @@ async function main() {
         instructions: `
         Playwrightを使って指定のURLを解析できます
         Perplexityで調べものもできます
+        Perplexityにリクエストを送るときは以下のエラーが出ないようにメッセージの構造をきれいにしてください
+        '{"error":{"message":"Last message must have role \`user\`.","type":"invalid_message","code":400}}'
+        '{"error":{"message":"After the (optional) system message(s), user and assistant roles should be alternating.","type":"invalid_message","code":400}}'
         Markdownフォーマットは使わず、Slackの\`\`\`にきれいに入るフラットテキストで出してください。
         最後の出力はこのプロンプトで何を送ったか詳細を送ってください
         全部日本語で出力してください
@@ -103,16 +107,7 @@ async function main() {
         model: openai("gpt-4o-mini"),
       });
 
-      const response = await agent.generate([
-        {
-          role: "system",
-          content: "あなたは日本語で回答する優秀なエージェントです",
-        }, // optional
-        {
-          role: "user",
-          content: prompt,
-        },
-      ]);
+      const response = await agent.generate(prompt);
 
       const resultText = "```\n" + response.text + "\n```";
 
@@ -128,6 +123,15 @@ async function main() {
       res.json(err);
       console.error(err);
       res.status(500).json({ error: "Error generating response" });
+
+      await fetch(response_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          text: err,
+        }),
+      });
     } finally {
       // 接続を明示的に終了
       console.log("Disconnecting from MCP...");
