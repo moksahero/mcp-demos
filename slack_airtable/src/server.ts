@@ -22,6 +22,14 @@ async function main() {
 
   const mcp = new MCPClient({
     servers: {
+      slack: {
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-slack"],
+        env: {
+          SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN,
+          SLACK_TEAM_ID: process.env.SLACK_TEAM_ID,
+        },
+      },
       "perplexity-ask": {
         command: "npx",
         args: ["-y", "server-perplexity-ask"],
@@ -29,47 +37,46 @@ async function main() {
           PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
         },
       },
-      playwright: {
+      airtable: {
         command: "npx",
-        args: ["@playwright/mcp"],
-      },
-      chatwork: {
-        command: "npx",
-        args: ["@chatwork/mcp-server"],
+        args: ["-y", "airtable-mcp-server"],
         env: {
-        "CHATWORK_API_TOKEN": process.env.CHATWORK_API_TOKEN,
+          AIRTABLE_API_KEY: process.env.AIRTABLE_API_KEY,
+        },
       },
-      }
-    }
+    },
   });
 
   const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY!,
   });
 
-  app.post("/api/ask", async (req: Request, res: Response) => {
-    res.sendStatus(200); // Chatwork expects a 200 response
+  app.use(bodyParser.urlencoded({ extended: true }));
 
-    //console.log("📥 Raw incoming body:", req.body);
-    console.log(JSON.stringify(req.body, null, 2));
+  app.post("/api/crm", async (req: Request, res: Response) => {
+    console.log("📥 Raw incoming body:", req.body);
 
-    const { webhook_event } = req.body;
-    const { message_id, body, account_id, send_time } = webhook_event;
-    const responseUrl = `https://api.chatwork.com/v2/rooms/${process.env.CHATWORK_ROOM_ID}/messages`;
-    const answerAI = "AIからの回答";
+    const { text, response_url } = req.body;
+    const prompt = text;
+    if (!prompt) {
+      res.status(400).json({ error: "Prompt is required" });
+    }
+
+    res.status(200).send();
+
+    const promptHeader =
+      "```\nプロンプト： /crm " + prompt + "\n\n CRMに問い合わせ中...\n```";
+
+    await fetch(response_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        response_type: "in_channel",
+        text: promptHeader,
+      }),
+    });
 
     try {
-      await fetch(responseUrl, {
-        method: "POST",
-        headers: {
-          "X-ChatWorkToken": process.env.CHATWORK_API_TOKEN,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          body: "AIからの回答を取得中です...",
-        }),
-      });
-
       const rawTools = await mcp.getTools();
 
       let wrappedTools = Object.fromEntries(
@@ -91,28 +98,30 @@ async function main() {
         name: "Slack Agent",
         tools: wrappedTools,
         instructions: `
-        Playwrightを使って指定のURLを解析できます
+        Airtableを使っでデータを取得できます
+        Airtableのベースは"8M CRM"を使ってください
         Perplexityで調べものもできます
         Perplexityにリクエストを送るときは以下のエラーが出ないようにメッセージの構造をきれいにしてください
         '{"error":{"message":"Last message must have role \`user\`.","type":"invalid_message","code":400}}'
         '{"error":{"message":"After the (optional) system message(s), user and assistant roles should be alternating.","type":"invalid_message","code":400}}'
-　　　　Chatworkを使って機能を拡張できます。
-　　　　出力の最後どのMCPモジュールを使って、どうやって回答したか詳細に記述してください。
+        Markdownフォーマットは使わず、Slackの\`\`\`にきれいに入るフラットテキストで出してください。
+        最後の出力はこのプロンプトで何を送ったか詳細を送ってください
         全部日本語で出力してください
         `,
         model: openai("gpt-4o-mini"),
       });
 
-      const response = await agent.generate(body);
+      const response = await agent.generate(prompt);
+      console.log(response);
 
-      await fetch(responseUrl, {
+      const resultText = "```\n" + response.text + "\n```";
+
+      await fetch(response_url, {
         method: "POST",
-        headers: {
-          "X-ChatWorkToken": process.env.CHATWORK_API_TOKEN,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          body: "AIからの回答：\n\n" + response.text,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          text: resultText,
         }),
       });
     } catch (err) {
@@ -120,14 +129,12 @@ async function main() {
       console.error(err);
       res.status(500).json({ error: "Error generating response" });
 
-      await fetch(responseUrl, {
+      await fetch(response_url, {
         method: "POST",
-        headers: {
-          "X-ChatWorkToken": process.env.CHATWORK_API_TOKEN,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          body: err,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          text: err,
         }),
       });
     } finally {
@@ -137,10 +144,11 @@ async function main() {
     }
   });
 
-  app.listen(4005, () => {
-    console.log("✅ Express API server is running on http://localhost:4005");
+  app.listen(4000, () => {
+    console.log("✅ Express API server is running on http://localhost:4000");
   });
 }
+
 // Call main()
 main().catch((err) => {
   console.error("❌ Failed to start server:", err);
