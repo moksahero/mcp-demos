@@ -139,8 +139,8 @@ async function main() {
     }
   });
 
-  app.listen(4000, () => {
-    console.log("✅ Express API server is running on http://localhost:4000");
+  app.listen(process.env.PORT, () => {
+    console.log("✅ Express API server is running on http://localhost:" + process.env.PORT);
   });
 }
 
