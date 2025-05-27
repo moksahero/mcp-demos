@@ -33,7 +33,14 @@ async function main() {
         command: "npx",
         args: ["@playwright/mcp"],
       },
-    },
+      chatwork: {
+        command: "npx",
+        args: ["@chatwork/mcp-server"],
+        env: {
+        "CHATWORK_API_TOKEN": process.env.CHATWORK_API_TOKEN,
+      },
+      }
+    }
   });
 
   const openai = createOpenAI({
@@ -50,11 +57,6 @@ async function main() {
     const { message_id, body, account_id, send_time } = webhook_event;
     const responseUrl = `https://api.chatwork.com/v2/rooms/${process.env.CHATWORK_ROOM_ID}/messages`;
     const answerAI = "AIからの回答";
-
-    if (body.includes(answerAI) || !body.includes("/askai")) {
-      console.log(`Skipping AI-generated message: ${message_id}`);
-      return;
-    }
 
     try {
       await fetch(responseUrl, {
@@ -94,6 +96,8 @@ async function main() {
         Perplexityにリクエストを送るときは以下のエラーが出ないようにメッセージの構造をきれいにしてください
         '{"error":{"message":"Last message must have role \`user\`.","type":"invalid_message","code":400}}'
         '{"error":{"message":"After the (optional) system message(s), user and assistant roles should be alternating.","type":"invalid_message","code":400}}'
+　　　　Chatworkを使って機能を拡張できます。
+　　　　出力の最後どのMCPモジュールを使って、どうやって回答したか詳細に記述してください。
         全部日本語で出力してください
         `,
         model: openai("gpt-4o-mini"),
@@ -133,8 +137,8 @@ async function main() {
     }
   });
 
-  app.listen(4000, () => {
-    console.log("✅ Express API server is running on http://localhost:4000");
+  app.listen(4005, () => {
+    console.log("✅ Express API server is running on http://localhost:4005");
   });
 }
 // Call main()
