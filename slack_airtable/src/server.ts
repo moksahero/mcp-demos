@@ -13,6 +13,11 @@ dotenv.config();
 const schema = z.object({
   summary: z.string(),
   content: z.string(),
+  keywords: z.array(z.string()),
+  sql: z.union([
+    z.string(), // 旧形式（単一のSQL）
+    z.array(z.string()), // 複数のSQL
+  ]),
 });
 
 async function main() {
@@ -28,13 +33,6 @@ async function main() {
         env: {
           SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN,
           SLACK_TEAM_ID: process.env.SLACK_TEAM_ID,
-        },
-      },
-      "perplexity-ask": {
-        command: "npx",
-        args: ["-y", "server-perplexity-ask"],
-        env: {
-          PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
         },
       },
       airtable: {
@@ -99,22 +97,28 @@ async function main() {
         tools: wrappedTools,
         instructions: `
         Airtableを使っでデータを取得できます
-        Airtableのベースは"8M CRM"を使ってください
-        Perplexityで調べものもできます
-        Perplexityにリクエストを送るときは以下のエラーが出ないようにメッセージの構造をきれいにしてください
-        '{"error":{"message":"Last message must have role \`user\`.","type":"invalid_message","code":400}}'
-        '{"error":{"message":"After the (optional) system message(s), user and assistant roles should be alternating.","type":"invalid_message","code":400}}'
-        Markdownフォーマットは使わず、Slackの\`\`\`にきれいに入るフラットテキストで出してください。
-        最後の出力はこのプロンプトで何を送ったか詳細を送ってください
+        Airtableのベースは「8M CRM」を使ってください
+        どのMCPモジュールのコマンドを使ったか出力に含めてください
         全部日本語で出力してください
         `,
         model: openai("gpt-4o-mini"),
       });
 
-      const response = await agent.generate(prompt);
-      console.log(response);
+      const response = await agent.generate(
+        [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        {
+          experimental_output: schema,
+        }
+      );
 
-      const resultText = "```\n" + response.text + "\n```";
+      console.log(response.object);
+
+      const resultText = "```\n" + response.object.content + "\n```";
 
       await fetch(response_url, {
         method: "POST",

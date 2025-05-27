@@ -15,15 +15,15 @@ const mcp = new MCPClient({
       command: "npx",
       args: ["-y", "@modelcontextprotocol/server-slack"],
       env: {
-        SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN,
-        SLACK_TEAM_ID: process.env.SLACK_TEAM_ID,
+        SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN!,
+        SLACK_TEAM_ID: process.env.SLACK_TEAM_ID!,
       },
     },
     "perplexity-ask": {
       command: "npx",
       args: ["-y", "server-perplexity-ask"],
       env: {
-        PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
+        PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY!,
       },
     },
   },
