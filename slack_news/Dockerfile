@@ -11,8 +11,5 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Compile TypeScript to JS
-RUN npx tsc
-
-RUN npm run build
-CMD ["npm", "start"]
+# Default command: run the TypeScript script with tsx
+CMD ["npx", "tsx", "sendNews.ts"]

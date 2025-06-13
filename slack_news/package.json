@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "npx tsx src/server.ts",
     "dev": "nodemon server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "npx tsx sendNews.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.18",
@@ -28,6 +28,7 @@
     "@types/express": "^5.0.1",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.1",
+    "tsx": "^4.19.4",
     "typescript": "^5.0.0"
   }
 }

@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ path: '/home/ta/mcp-demos/slack_news/.env' });
+dotenv.config({ path: "/home/ta/mcp-demos/slack_news/.env" });
 
 import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
@@ -70,7 +70,7 @@ async function sendNews(topic: string) {
       \`\`\`
       
       3. Markdownは使わず、Slackの \`\`\` で囲んでください。
-      4. 取得したニュース一覧を Slack の #news チャンネルに投稿してください。
+      4. 取得したニュース一覧を Slack の #00_mcp_test チャンネルに投稿してください。
       5. 日付は記事の公開された年月日を入れてください
       6. リンク先は記事に飛べるディープリンクにしてください
       7. 出力はすべて日本語で書いてください。

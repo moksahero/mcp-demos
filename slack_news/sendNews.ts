@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ path: '/home/ta/mcp-demos/slack_news/.env' });
+dotenv.config({ path: "/home/ta/mcp-demos/slack_news/.env" });
 
 import { createOpenAI } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
@@ -52,19 +52,31 @@ async function sendNews(topic: string) {
       name: "Slack Agent",
       tools: wrappedTools,
       instructions: `
-        Perplexityで最新ニュースを取ってきてください。
-        10件程度でお願いします。
-        エラーが出ないようにメッセージ構造を整えてください。
-        Markdownは避け、Slackの\`\`\`で囲ってください。
-        ニュースのリストは以下の内容でお願いします。
+      あなたは2つのツール（PerplexityとSlack）を使えるエージェントです。
 
-        - タイトル
-        - 日付
-        - サマリー (300文字程度)
-        - URL込リンク
-
-        出力はすべて日本語で。
-        #askai_test に投稿してください。
+      以下のプロセスに従ってください：
+      
+      1. トピック（例: "AI関連"）を使って、Perplexityツールを呼び出し、ここ３日以内に公開されたニュースを10件取得してください。
+      2. 各ニュースについて以下のフォーマットで整形してください：
+      
+      \`\`\`
+      【トピック名】
+      (いつからいつまでのニュースかを 「yyyy-mm-dd ~ yyyy-mm-dd のニュース」形式で記載してください。)
+      
+      1. タイトル
+      日付: YYYY-MM-DD
+      サマリー: （500文字程度）
+      リンク: https://... (記事に直接飛べるリンク)
+      
+      \`\`\`
+      
+      3. Markdownは使わず、Slackの \`\`\` で囲んでください。
+      4. 取得したニュース一覧を Slack の #00_news チャンネルに投稿してください。
+      5. 日付は記事の公開された年月日を入れてください
+      6. リンク先は記事に飛べるディープリンクにしてください
+      7. 出力はすべて日本語で書いてください。
+      8. 出力する前にもう一度全て\`\`\`で始まり、\`\`\`で終わることを確認して出力してください。
+      9. 出力は必ず1つのコードブロックで囲んでください。  
       `,
       model: openai("gpt-4o-mini"),
     });
